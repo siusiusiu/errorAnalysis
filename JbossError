@@ -1,0 +1,19 @@
+与2019年4月至5月期间开发案件管理任务时，使用hdfs做文件服务器，使用hadoop的API对hdfs进行操作，为了使用hadoop的API引入了两个开源jar：
+hadoop-client与hadoop-common，本地使用jdk1.8，开发工具使用IDEA，本地开发使用时没有报错，使用jenkins组包部署到jboss时编译始终报错。
+错误信息如下：
+{"JBAS014653: Composite operation failed and was rolled back. Steps that failed:" => {"Operation step-2" => {"JBAS014671: 
+Failed services" => {"jboss.deployment.unit.\"RbmsWeb.war\".POST_MODULE" => "org.jboss.msc.service.StartException in service 
+jboss.deployment.unit.\"RbmsWeb.war\".POST_MODULE: Failed to process phase POST_MODULE of deployment \"RbmsWeb.war\"
+  Caused by: org.jboss.as.server.deployment.DeploymentUnitProcessingException:JBAS011232:Only one JAX-RS Application Class allowed.
+  com.sun.jersey.server.impl.application.DeferredResourceConfig com.sun.jersey.api.core.ResourceConfig com.sun.jersey.api.core.WebAppResourceConfig
+  com.sun.jersey.api.core.DefaultResourceConfig com.sun.jersey.api.core.ScanningResourceConfig com.sun.jersey.api.core.ClassNameResourceConfig
+  com.sun.jersey.api.core.ApplicationAdapter com.sun.jersey.api.core.ClasspathResourceConfig com.sun.jersey.api.core.PackagesResourceConfig"}}}}
+  
+分析过程：1、最开始以为是组包有问题或版本问题导致抛了个不常见的异常，发现本地可以正常启动，无未提交的代码；并且使用IDEA打包后发现手动部署到deployment目录仍报错。
+         2、切换其他分支发现其他批次jenkins组包及手动组包均没有此问题。
+         3、随后查阅资料有人说是jdk版本问题，本地jdk调整至与Linux环境相同jdk依然报错。
+         4、后有人说是configuration/standalone.xml中注释掉<extension module="org.jboss.as.jaxrs"/>与<subsystem xmlns="urn:jboss:domain:jaxrs:1.0"/>仍未见效。
+         5、后来对比jar发现印了两个开源jar导致项目多引入了40几个jar包，全部删掉后发现编译可以过，定位问题与jar有关。
+         6、详细分析错误日志发现核心报错为  JBAS011232:Only one JAX-RS Application Class allowed.分析问题原因应该与jersey的jar有关。
+         7、jersey是一个开源的RESTful Web Services框架，可能就是他导致web工程有多个JAX-RS Application。
+  
